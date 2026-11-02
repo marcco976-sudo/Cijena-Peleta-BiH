@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cijene peleta</title>
+<meta name="description" content="Usporedba cijena peleta po regijama, s dovozom i bez, i ocjene prodavača.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Figtree:wght@400;500;600&display=swap">
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<style>
+/* Layout: jedna kolona — sažetak "najpovoljnije", graf po regijama, unos, tablica svih ponuda */
+:root{
+  --bg:#eef0e9; --surface:#f9faf6; --line:#d5d9cc; --fg:#1d2a1f; --muted:#5b6a5c;
+  --accent:#2f6b3e; --accent-fg:#ffffff; --amber:#c7811f; --bar-a:#2f6b3e; --bar-b:#c7811f;
+  --good:#2f6b3e; --danger:#a63b2b;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141a15; --surface:#1c241d; --line:#2f3a30; --fg:#e6ebe2; --muted:#9aa89a;
+  --accent:#6fbf83; --accent-fg:#0d1a10; --amber:#e3a34a; --bar-a:#6fbf83; --bar-b:#e3a34a;
+  --good:#6fbf83; --danger:#e07a68; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141a15; --surface:#1c241d; --line:#2f3a30; --fg:#e6ebe2; --muted:#9aa89a;
+  --accent:#6fbf83; --accent-fg:#0d1a10; --amber:#e3a34a; --bar-a:#6fbf83; --bar-b:#e3a34a;
+  --good:#6fbf83; --danger:#e07a68; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:860px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:28px}
+h1,h2{font-family:var(--f-display);font-stretch:80%;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(30px,6vw,46px);font-weight:800;line-height:1}
+h2{font-size:22px;font-weight:700}
+.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+.lead{color:var(--muted);max-width:60ch;margin:8px 0 0}
+.num{font-variant-numeric:tabular-nums}
+section{display:grid;gap:14px}
+.best{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:4px;min-width:0}
+.tile .price{font-family:var(--f-display);font-stretch:75%;font-size:38px;font-weight:800;line-height:1}
+.tile .price small{font-size:15px;font-weight:600;color:var(--muted);font-stretch:100%}
+.tile.a .price{color:var(--bar-a)} .tile.b .price{color:var(--bar-b)}
+.tile .where{font-weight:600}
+.tile .meta{color:var(--muted);font-size:13px}
+.head-row{display:flex;flex-wrap:wrap;gap:10px;align-items:end;justify-content:space-between}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;font-weight:600;padding:7px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.chart{display:grid;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.crow{display:grid;grid-template-columns:minmax(90px,150px) 1fr;gap:12px;align-items:center}
+.crow .rname{font-weight:600;overflow-wrap:anywhere}
+.crow .rname span{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.bars{display:grid;gap:4px;min-width:0}
+.bar{display:flex;align-items:center;gap:8px;min-width:0}
+.bar .fill{height:16px;border-radius:0 4px 4px 0;min-width:3px;transition:width .4s ease}
+.bar .v{font-size:13px;white-space:nowrap}
+.bar.best .v{font-weight:700}
+.bar.best .v::after{content:"najpovoljnije";margin-left:6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;background:var(--accent);color:var(--accent-fg);padding:1px 6px;border-radius:99px}
+.axis{display:grid;grid-template-columns:minmax(90px,150px) 1fr;gap:12px;font-size:11px;color:var(--muted)}
+.axis div:last-child{display:flex;justify-content:space-between}
+.empty{color:var(--muted);text-align:center;padding:24px 8px}
+form{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+label{display:grid;gap:4px;font-size:13px;font-weight:600;color:var(--muted)}
+input,select{font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:9px 10px;min-width:0}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.full{grid-column:1/-1}
+.actions{grid-column:1/-1;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.btn{font:inherit;font-weight:600;border:0;border-radius:8px;padding:10px 18px;background:var(--accent);color:var(--accent-fg);cursor:pointer}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.msg{font-size:13px;color:var(--muted)} .msg.err{color:var(--danger)} .msg.ok{color:var(--good)}
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;cursor:pointer;user-select:none}
+td.r,th.r{text-align:right}
+tr:last-child td{border-bottom:0}
+td .sub{display:block;font-size:12px;color:var(--muted);white-space:normal;max-width:240px}
+.del{border:0;background:none;color:var(--danger);font:inherit;font-size:13px;cursor:pointer;padding:2px 4px}
+.note{font-size:12px;color:var(--muted)}
+.rate{display:grid;gap:6px;font-size:13px;font-weight:600;color:var(--muted);border:0;margin:0;padding:0;min-width:0}
+.rate legend{padding:0;margin-bottom:2px}
+.rate .hint{font-weight:400;font-size:12px}
+.stars{display:flex;flex-direction:row-reverse;justify-content:flex-end;gap:2px}
+.stars input{position:absolute;opacity:0;width:1px;height:1px}
+.stars label{display:block;cursor:pointer;font-size:28px;line-height:1;color:var(--line);padding:2px}
+.stars input:checked ~ label,.stars label:hover,.stars label:hover ~ label{color:var(--amber)}
+.stars input:focus-visible + label{outline:2px solid var(--amber);outline-offset:1px;border-radius:4px}
+.sv{color:var(--amber);letter-spacing:1px;white-space:nowrap}
+.sv .off{color:var(--line)}
+.rank{background:var(--surface);border:1px solid var(--line);border-radius:10px;display:grid}
+.ritem{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}
+.ritem:last-child{border-bottom:0}
+.ritem .pos{font-family:var(--f-display);font-weight:800;font-size:20px;color:var(--muted)}
+.ritem:first-child .pos{color:var(--amber)}
+.ritem .who{font-weight:600;overflow-wrap:anywhere}
+.ritem .who span{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.ritem .score{text-align:right;display:grid;gap:2px;font-size:12px;color:var(--muted)}
+.ritem .score b{font-family:var(--f-display);font-size:22px;color:var(--fg);font-stretch:80%}
+@media (prefers-reduced-motion:reduce){.bar .fill{transition:none}}
+</style>
+<style>
+.banner{background:var(--surface);border:1px dashed var(--amber);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted)}
+.banner b{color:var(--fg)}
+.foot{font-size:12px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Drvni pelet · cijena po toni</div>
+    <h1>Gdje je pelet najpovoljniji?</h1>
+    <p class="lead">Upišite cijenu koju ste platili u svojoj regiji i ocijenite prodavača. Anonimno, bez prijave. Svi odmah vide usporedbu cijena s dovozom i bez dovoza te najbolje ocijenjene prodavače.</p>
+  </header>
+
+  <div class="banner" id="demo" hidden><b>Primjer podataka.</b> Stranica još nije povezana s Google tablicom, pa su prikazane izmišljene cijene samo za ogled.</div>
+
+  <section aria-labelledby="best-h">
+    <h2 id="best-h" class="eyebrow" style="font-family:var(--f-body);font-size:12px;font-weight:600">Trenutno najpovoljnije</h2>
+    <div class="best" id="best">
+      <div class="tile a"><div class="eyebrow">Bez dovoza</div><div class="price num">–</div><div class="meta">Učitavanje cijena…</div></div>
+      <div class="tile b"><div class="eyebrow">S dovozom</div><div class="price num">–</div><div class="meta">Učitavanje cijena…</div></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="chart-h">
+    <div class="head-row">
+      <div>
+        <h2 id="chart-h">Usporedba po regijama</h2>
+        <div class="note">Najniža prijavljena cijena u svakoj regiji, KM po toni</div>
+      </div>
+      <div class="seg" role="group" aria-label="Prikaz">
+        <button type="button" id="v-both" aria-pressed="true">Obje</button>
+        <button type="button" id="v-bez" aria-pressed="false">Bez dovoza</button>
+        <button type="button" id="v-sa" aria-pressed="false">S dovozom</button>
+      </div>
+    </div>
+    <div class="legend"><span><i style="background:var(--bar-a)"></i>Bez dovoza</span><span><i style="background:var(--bar-b)"></i>S dovozom</span></div>
+    <div class="chart" id="chart"><div class="empty">Učitavanje…</div></div>
+  </section>
+
+  <section aria-labelledby="rank-h">
+    <div>
+      <h2 id="rank-h">Najbolje ocijenjeni prodavači</h2>
+      <div class="note">Prosjek ocjena za kvalitetu peleta i uslugu, 1 do 5</div>
+    </div>
+    <div class="rank" id="rank"><div class="empty">Učitavanje…</div></div>
+  </section>
+
+  <section aria-labelledby="form-h" id="dodaj">
+    <h2 id="form-h">Dodaj cijenu i ocjenu</h2>
+    <form id="f" novalidate>
+      <label>Regija / mjesto
+        <input id="f-regija" list="regije" required maxlength="60" placeholder="npr. Brčko centar">
+        <datalist id="regije"></datalist>
+      </label>
+      <label>Prodavač (neobavezno)
+        <input id="f-prodavac" maxlength="60" placeholder="npr. naziv pilane ili trgovine">
+      </label>
+      <label>Cijena bez dovoza (KM/t)
+        <input id="f-bez" type="number" inputmode="decimal" min="0" step="1" placeholder="npr. 420">
+      </label>
+      <label>Cijena s dovozom (KM/t)
+        <input id="f-sa" type="number" inputmode="decimal" min="0" step="1" placeholder="npr. 450">
+      </label>
+      <label>Vrsta peleta
+        <select id="f-vrsta"><option value="">Odaberite…</option><option>Bukva</option><option>Jela</option><option>Miješano</option><option>Ne znam</option></select>
+      </label>
+      <fieldset class="rate">
+        <legend>Kvaliteta peleta <span class="hint">pepeo, vlaga, toplina</span></legend>
+        <div class="stars">
+          <input type="radio" name="kvaliteta" id="k5" value="5"><label for="k5" title="5 – odlično">★</label>
+          <input type="radio" name="kvaliteta" id="k4" value="4"><label for="k4" title="4">★</label>
+          <input type="radio" name="kvaliteta" id="k3" value="3"><label for="k3" title="3">★</label>
+          <input type="radio" name="kvaliteta" id="k2" value="2"><label for="k2" title="2">★</label>
+          <input type="radio" name="kvaliteta" id="k1" value="1"><label for="k1" title="1 – loše">★</label>
+        </div>
+      </fieldset>
+      <fieldset class="rate">
+        <legend>Usluga i dovoz <span class="hint">točnost, ljubaznost, rokovi</span></legend>
+        <div class="stars">
+          <input type="radio" name="usluga" id="u5" value="5"><label for="u5" title="5 – odlično">★</label>
+          <input type="radio" name="usluga" id="u4" value="4"><label for="u4" title="4">★</label>
+          <input type="radio" name="usluga" id="u3" value="3"><label for="u3" title="3">★</label>
+          <input type="radio" name="usluga" id="u2" value="2"><label for="u2" title="2">★</label>
+          <input type="radio" name="usluga" id="u1" value="1"><label for="u1" title="1 – loše">★</label>
+        </div>
+      </fieldset>
+      <label class="full">Komentar (neobavezno)
+        <input id="f-napomena" maxlength="200" placeholder="Što vam se svidjelo ili ne svidjelo, npr. vreće 15 kg, A1 certifikat">
+      </label>
+      <div class="actions">
+        <button class="btn" id="f-btn" type="submit">Pošalji</button>
+        <span class="msg" id="f-msg" role="status">Unesite barem jednu cijenu ili ocjenu.</span>
+      </div>
+    </form>
+  </section>
+
+  <section aria-labelledby="list-h">
+    <div class="head-row">
+      <h2 id="list-h">Sve prijavljene cijene</h2>
+      <label>Regija
+        <select id="filter"><option value="">Sve regije</option></select>
+      </label>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th data-sort="regija">Regija</th>
+          <th data-sort="bez" class="r">Bez dovoza</th>
+          <th data-sort="sa" class="r">S dovozom</th>
+          <th data-sort="ocjena">Ocjena</th>
+          <th data-sort="red">Datum</th>
+        </tr></thead>
+        <tbody id="rows"><tr><td colspan="5" class="empty">Učitavanje…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="note">Cijene unose korisnici anonimno i nisu provjerene. Pogrešne unose administrator briše u tablici.</div>
+  </section>
+
+  <div class="foot">Cijene peleta · Brčko distrikt</div>
+</div>
+
+<script>
+/* ================== POSTAVKE ==================
+   SCRIPT_URL: link web aplikacije iz Google Apps Scripta (završava na /exec).
+   Dok je prazan, stranica prikazuje primjer podataka. */
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykktsbX6fl80XM5fEewOdpVGnBCMnorhoWtjc98CAOc0m2m5oAv1FM94ud_PMJznqn7A/exec";
+/* ============================================== */
+
+(function(){
+  const $ = s => document.querySelector(s);
+  const fmt = n => n == null ? "–" : Math.round(n).toLocaleString("hr-HR");
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const normReg = s => s.trim().replace(/\s+/g," ").replace(/^./, c => c.toUpperCase());
+  const num = v => { if (v == null) return null; const n = parseFloat(String(v).replace(/\s|KM/gi,"").replace(",", ".")); return isFinite(n) && n > 0 && n < 5000 ? n : null; };
+  const r15 = v => { const n = parseInt(v,10); return n >= 1 && n <= 5 ? n : null; };
+  const avg = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : null;
+  const VRSTE = ["Bukva","Jela","Miješano","Ne znam"];
+
+  let entries = [], view = "both", sortKey = "bez", sortDir = 1, loaded = false;
+
+  function mk(o, red){
+    const kvaliteta = r15(o.kvaliteta), usluga = r15(o.usluga);
+    return { red, regija: normReg(String(o.regija||"")) || "Nepoznato", prodavac: String(o.prodavac||"").trim(), bez: num(o.bez), sa: num(o.sa),
+      kvaliteta, usluga, vrsta: VRSTE.includes(String(o.vrsta||"").trim()) ? String(o.vrsta).trim() : "",
+      napomena: String(o.komentar||"").trim(), datum: String(o.datum||"").split(/[ T]/)[0],
+      ocjena: avg([kvaliteta,usluga].filter(v=>v!=null)) };
+  }
+
+  async function load(){
+    if (!SCRIPT_URL){ $("#demo").hidden = false; entries = DEMO.map((o,i) => mk(o,i)); loaded = true; renderAll(); return; }
+    try {
+      const res = await fetch(SCRIPT_URL + "?t=" + Date.now(), {cache:"no-store"});
+      if (!res.ok) throw new Error(res.status);
+      const rows = await res.json();
+      entries = rows.map((o,i) => mk(o,i)).filter(e => e.bez != null || e.sa != null || e.ocjena != null);
+      entries = entries.concat(pending.filter(p => !entries.some(e => e.regija === p.regija && e.bez === p.bez && e.sa === p.sa && e.prodavac === p.prodavac)));
+    } catch(e){
+      $("#chart").innerHTML = `<div class="empty">Cijene se trenutno ne mogu učitati. Provjerite vezu i osvježite stranicu.</div>`;
+    }
+    loaded = true; renderAll();
+  }
+
+  /* ---------- prikaz ---------- */
+  function renderBest(){
+    const pick = key => entries.filter(e => e[key] != null).sort((a,b) => a[key]-b[key])[0];
+    const tile = (cls, label, e, key) => !e
+      ? `<div class="tile ${cls}"><div class="eyebrow">${label}</div><div class="price num">–</div><div class="meta">${loaded ? "Još nema unosa." : "Učitavanje cijena…"}</div></div>`
+      : `<div class="tile ${cls}"><div class="eyebrow">${label}</div><div class="price num">${fmt(e[key])} <small>KM/t</small></div>
+         <div class="where">${esc(e.regija)}${e.prodavac ? " · " + esc(e.prodavac) : ""}</div>
+         <div class="meta">${e.ocjena != null ? stars(e.ocjena) + " · " : ""}${e.datum ? "Prijavljeno " + esc(e.datum) : ""}</div></div>`;
+    $("#best").innerHTML = tile("a","Bez dovoza",pick("bez"),"bez") + tile("b","S dovozom",pick("sa"),"sa");
+  }
+
+  function renderChart(){
+    const el = $("#chart");
+    const m = new Map();
+    for (const e of entries){
+      if (e.bez == null && e.sa == null) continue;
+      const k = e.regija.toLowerCase();
+      if (!m.has(k)) m.set(k, {regija:e.regija, bez:null, sa:null, n:0});
+      const r = m.get(k); r.n++;
+      if (e.bez != null && (r.bez == null || e.bez < r.bez)) r.bez = e.bez;
+      if (e.sa != null && (r.sa == null || e.sa < r.sa)) r.sa = e.sa;
+    }
+    const stats = [...m.values()];
+    if (!stats.length){ el.innerHTML = `<div class="empty">${loaded ? "Još nema cijena. Dodajte prvu i graf će se pojaviti." : "Učitavanje…"}</div>`; return; }
+    const keys = view === "both" ? ["bez","sa"] : [view];
+    const sortBy = view === "sa" ? "sa" : "bez";
+    stats.sort((a,b) => (a[sortBy] ?? a.sa ?? 1e9) - (b[sortBy] ?? b.sa ?? 1e9));
+    let max = 0; for (const r of stats) for (const k of keys) if (r[k] > max) max = r[k];
+    const top = Math.ceil(max/50)*50 || 50;
+    const bestOf = {}; for (const k of keys){ const v = stats.map(r=>r[k]).filter(v=>v!=null); bestOf[k] = v.length ? Math.min(...v) : null; }
+    const color = {bez:"var(--bar-a)", sa:"var(--bar-b)"}, label = {bez:"bez dovoza", sa:"s dovozom"};
+    el.innerHTML = stats.map(r => `<div class="crow">
+      <div class="rname">${esc(r.regija)}<span>${r.n} ${r.n===1?"unos":"unosa"}</span></div>
+      <div class="bars">${keys.map(k => r[k]==null
+        ? `<div class="bar"><span class="v" style="color:var(--muted)">nema cijene ${label[k]}</span></div>`
+        : `<div class="bar ${r[k]===bestOf[k]?"best":""}" title="${esc(r.regija)}: ${fmt(r[k])} KM/t ${label[k]}"><div class="fill" style="width:${(r[k]/top*78).toFixed(1)}%;background:${color[k]}"></div><span class="v num">${fmt(r[k])} KM</span></div>`
+      ).join("")}</div></div>`).join("")
+      + `<div class="axis num"><div></div><div style="width:78%"><span>0</span><span>${fmt(top/2)}</span><span>${fmt(top)} KM/t</span></div></div>`;
+  }
+
+  const stars = v => { if (v == null) return `<span class="note">–</span>`; const r = Math.round(v); return `<span class="sv" title="${v.toFixed(1)} od 5">${"★".repeat(r)}<span class="off">${"★".repeat(5-r)}</span></span>`; };
+
+  function renderRank(){
+    const el = $("#rank"), m = new Map();
+    for (const e of entries){
+      if (e.kvaliteta == null && e.usluga == null) continue;
+      const name = e.prodavac || "Nepoznat prodavač";
+      const k = (name + "|" + e.regija).toLowerCase();
+      if (!m.has(k)) m.set(k, {prodavac:name, regija:e.regija, kv:[], us:[], bez:null, vrste:new Set()});
+      const r = m.get(k);
+      if (e.kvaliteta != null) r.kv.push(e.kvaliteta);
+      if (e.usluga != null) r.us.push(e.usluga);
+      if (e.bez != null && (r.bez == null || e.bez < r.bez)) r.bez = e.bez;
+      if (e.vrsta && e.vrsta !== "Ne znam") r.vrste.add(e.vrsta);
+    }
+    const list = [...m.values()].map(r => { const kv = avg(r.kv), us = avg(r.us); return {...r, kvA:kv, usA:us, n:Math.max(r.kv.length,r.us.length), uk: avg([kv,us].filter(x=>x!=null))}; })
+      .sort((a,b) => b.uk - a.uk || b.n - a.n).slice(0, 10);
+    if (!list.length){ el.innerHTML = `<div class="empty">${loaded ? "Još nema ocjena." : "Učitavanje…"}</div>`; return; }
+    el.innerHTML = list.map((r,i) => `<div class="ritem">
+      <div class="pos num">${i+1}</div>
+      <div class="who">${esc(r.prodavac)}<span>${esc(r.regija)}${r.vrste.size ? " · " + esc([...r.vrste].join(", ")) : ""}${r.bez!=null ? " · od " + fmt(r.bez) + " KM/t" : ""}</span>
+        <span>Kvaliteta ${stars(r.kvA)} &nbsp; Usluga ${stars(r.usA)}</span></div>
+      <div class="score"><b class="num">${r.uk.toFixed(1).replace(".",",")}</b>${r.n} ${r.n===1?"ocjena":(r.n<5?"ocjene":"ocjena")}</div>
+    </div>`).join("");
+  }
+
+  function renderTable(){
+    const tb = $("#rows"), f = $("#filter").value;
+    const list = entries.filter(e => !f || e.regija.toLowerCase() === f).sort((a,b) => {
+      const x = a[sortKey], y = b[sortKey];
+      if (sortKey === "regija") return x.localeCompare(y,"hr") * sortDir;
+      if (x == null) return 1; if (y == null) return -1;
+      return (x - y) * sortDir;
+    });
+    document.querySelectorAll("th[data-sort]").forEach(th => {
+      th.textContent = th.textContent.replace(/ [↑↓]$/,"") + (th.dataset.sort === sortKey ? (sortDir>0?" ↑":" ↓") : "");
+    });
+    if (!list.length){ tb.innerHTML = `<tr><td colspan="5" class="empty">${loaded ? "Nema unosa za ovaj prikaz." : "Učitavanje…"}</td></tr>`; return; }
+    tb.innerHTML = list.map(e => `<tr>
+      <td>${esc(e.regija)}<span class="sub">${esc([e.prodavac,e.vrsta,e.napomena].filter(Boolean).join(" · "))}</span></td>
+      <td class="r num">${e.bez!=null ? fmt(e.bez)+" KM" : "–"}</td>
+      <td class="r num">${e.sa!=null ? fmt(e.sa)+" KM" : "–"}</td>
+      <td>${stars(e.ocjena)}</td>
+      <td class="num">${esc(e.datum || "upravo poslano")}</td>
+    </tr>`).join("");
+  }
+
+  function renderFilters(){
+    const regs = [...new Map(entries.map(e => [e.regija.toLowerCase(), e.regija])).entries()].sort((a,b)=>a[1].localeCompare(b[1],"hr"));
+    const sel = $("#filter"), cur = sel.value;
+    sel.innerHTML = `<option value="">Sve regije</option>` + regs.map(([k,v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join("");
+    sel.value = regs.some(([k]) => k===cur) ? cur : "";
+    $("#regije").innerHTML = regs.map(([,v]) => `<option value="${esc(v)}"></option>`).join("");
+  }
+
+  function renderAll(){ renderBest(); renderChart(); renderRank(); renderFilters(); renderTable(); }
+
+  [["#v-both","both"],["#v-bez","bez"],["#v-sa","sa"]].forEach(([s,v]) => $(s).addEventListener("click", () => {
+    view = v; document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(b === $(s)))); renderChart();
+  }));
+  document.querySelectorAll("th[data-sort]").forEach(th => th.addEventListener("click", () => {
+    if (sortKey === th.dataset.sort) sortDir *= -1; else { sortKey = th.dataset.sort; sortDir = (sortKey === "red" || sortKey === "ocjena") ? -1 : 1; }
+    renderTable();
+  }));
+  $("#filter").addEventListener("change", renderTable);
+
+  /* ---------- slanje u Google obrazac ---------- */
+  const pending = [];
+  const msg = (t, cls) => { const m = $("#f-msg"); m.textContent = t; m.className = "msg" + (cls ? " " + cls : ""); };
+  const radio = n => { const r = document.querySelector(`input[name="${n}"]:checked`); return r ? r.value : ""; };
+
+  $("#f").addEventListener("submit", async ev => {
+    ev.preventDefault();
+    const regija = normReg($("#f-regija").value);
+    const d = { regija, prodavac: $("#f-prodavac").value.trim(), bez: $("#f-bez").value.trim(), sa: $("#f-sa").value.trim(),
+      kvaliteta: radio("kvaliteta"), usluga: radio("usluga"), vrsta: $("#f-vrsta").value, komentar: $("#f-napomena").value.trim() };
+    if (!regija) return msg("Upišite regiju ili mjesto.", "err");
+    if (!num(d.bez) && !num(d.sa) && !d.kvaliteta && !d.usluga) return msg("Upišite barem jednu cijenu ili dajte ocjenu.", "err");
+    if ((d.bez && !num(d.bez)) || (d.sa && !num(d.sa))) return msg("Cijena treba biti broj, u KM po toni.", "err");
+    if (!SCRIPT_URL){ return msg("Slanje još nije uključeno: stranica nije povezana s Google tablicom.", "err"); }
+    const body = new URLSearchParams();
+    for (const k in d) if (d[k]) body.append(k, d[k]);
+    const btn = $("#f-btn"); btn.disabled = true; msg("Šaljem…");
+    try {
+      await fetch(SCRIPT_URL, {method:"POST", mode:"no-cors", body});
+      const e = mk(d, 1e9 + pending.length); e.datum = ""; pending.push(e); entries.push(e); renderAll();
+      $("#f").reset();
+      msg("Hvala! Poslano i odmah vidljivo svima.", "ok"); setTimeout(load, 2500);
+    } catch(err){ msg("Slanje nije uspjelo. Provjerite internet vezu i pokušajte ponovno.", "err"); }
+    finally { btn.disabled = false; }
+  });
+
+  /* ---------- primjer podataka (samo dok SCRIPT_URL nije postavljen) ---------- */
+  const DEMO = [
+    {regija:"Brčko centar", prodavac:"Primjer d.o.o.", bez:"420", sa:"450", kvaliteta:"4", usluga:"5", vrsta:"Bukva", datum:"28.10.2026."},
+    {regija:"Brka", prodavac:"Pilana Primjer", bez:"395", sa:"", kvaliteta:"5", usluga:"4", vrsta:"Miješano", datum:"30.10.2026."},
+    {regija:"Gornji Rahić", prodavac:"Trgovina Primjer", bez:"410", sa:"440", kvaliteta:"3", usluga:"3", vrsta:"Jela", datum:"31.10.2026."},
+    {regija:"Brčko centar", prodavac:"Drvo Primjer", bez:"435", sa:"455", kvaliteta:"4", usluga:"4", vrsta:"Bukva", datum:"1.11.2026."}
+  ];
+
+  renderAll();
+  load();
+  setInterval(() => { if (!document.hidden && SCRIPT_URL) load(); }, 120000);
+})();
+</script>
+</body>
+</html>
