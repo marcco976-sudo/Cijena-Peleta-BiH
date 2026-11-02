@@ -51,6 +51,19 @@ section{display:grid;gap:14px}
 .crow{display:grid;grid-template-columns:minmax(90px,150px) 1fr;gap:12px;align-items:center}
 .crow .rname{font-weight:600;overflow-wrap:anywhere}
 .crow .rname span{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+button.rname{all:unset;cursor:pointer;font-weight:600;overflow-wrap:anywhere;border-radius:6px;padding:2px 4px;margin:-2px -4px}
+button.rname:hover span{color:var(--accent);text-decoration:underline}
+button.rname:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.creg{display:grid;gap:8px}
+.creg.open{background:var(--bg);border-radius:8px;padding:8px;margin:-8px}
+.detail{display:grid;gap:0;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.dsum{font-size:12px;color:var(--muted);padding:8px 12px;border-bottom:1px solid var(--line)}
+.ditem{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 12px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:14px}
+.ditem:last-child{border-bottom:0}
+.dwho{font-weight:600;min-width:0}
+.dwho span{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.dpr{display:flex;gap:12px;align-items:center;white-space:nowrap}
+.dpr small{color:var(--muted);font-size:11px}
 .bars{display:grid;gap:4px;min-width:0}
 .bar{display:flex;align-items:center;gap:8px;min-width:0}
 .bar .fill{height:16px;border-radius:0 4px 4px 0;min-width:3px;transition:width .4s ease}
@@ -127,7 +140,7 @@ td .sub{display:block;font-size:12px;color:var(--muted);white-space:normal;max-w
     <div class="head-row">
       <div>
         <h2 id="chart-h">Usporedba po regijama</h2>
-        <div class="note">Najniža prijavljena cijena u svakoj regiji, KM po toni</div>
+        <div class="note">Najniža cijena u svakoj regiji, KM po toni. Kliknite na regiju za sve ponude.</div>
       </div>
       <div class="seg" role="group" aria-label="Prikaz">
         <button type="button" id="v-both" aria-pressed="true">Obje</button>
@@ -238,6 +251,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykktsbX6fl80XM5fEew
   const avg = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : null;
   const VRSTE = ["Bukva","Jela","Miješano","Ne znam"];
 
+  const openReg = new Set();
   let entries = [], view = "both", sortKey = "bez", sortDir = 1, loaded = false;
 
   function mk(o, red){
@@ -293,12 +307,25 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykktsbX6fl80XM5fEew
     const top = Math.ceil(max/50)*50 || 50;
     const bestOf = {}; for (const k of keys){ const v = stats.map(r=>r[k]).filter(v=>v!=null); bestOf[k] = v.length ? Math.min(...v) : null; }
     const color = {bez:"var(--bar-a)", sa:"var(--bar-b)"}, label = {bez:"bez dovoza", sa:"s dovozom"};
-    el.innerHTML = stats.map(r => `<div class="crow">
-      <div class="rname">${esc(r.regija)}<span>${r.n} ${r.n===1?"unos":"unosa"}</span></div>
+    const byReg = k => entries.filter(e => e.regija.toLowerCase() === k && (e.bez != null || e.sa != null))
+      .sort((a,b) => (a[sortBy] ?? a.sa ?? 1e9) - (b[sortBy] ?? b.sa ?? 1e9));
+    el.innerHTML = stats.map(r => { const k = r.regija.toLowerCase(), open = openReg.has(k);
+      let det = "";
+      if (open){
+        const list = byReg(k);
+        const vals = list.map(e => e[sortBy] ?? e.sa).filter(v => v != null);
+        const sum = vals.length > 1 ? `<div class="dsum num">Najniža ${fmt(Math.min(...vals))} · prosjek ${fmt(avg(vals))} · najviša ${fmt(Math.max(...vals))} KM/t</div>` : "";
+        det = `<div class="detail">${sum}${list.map(e => `<div class="ditem">
+          <div class="dwho">${esc(e.prodavac || "Nepoznat prodavač")}<span>${esc([e.vrsta, e.datum, e.napomena].filter(Boolean).join(" · "))}</span></div>
+          <div class="dpr num"><span><small>bez</small> ${e.bez!=null ? fmt(e.bez)+" KM" : "–"}</span><span><small>s dov.</small> ${e.sa!=null ? fmt(e.sa)+" KM" : "–"}</span>${e.ocjena!=null ? stars(e.ocjena) : ""}</div>
+        </div>`).join("")}</div>`;
+      }
+      return `<div class="creg${open ? " open" : ""}"><div class="crow">
+      <button type="button" class="rname" data-reg="${esc(k)}" aria-expanded="${open}">${esc(r.regija)}<span>${r.n} ${r.n===1?"unos":"unosa"} · ${open ? "sakrij" : "prikaži sve"}</span></button>
       <div class="bars">${keys.map(k => r[k]==null
         ? `<div class="bar"><span class="v" style="color:var(--muted)">nema cijene ${label[k]}</span></div>`
         : `<div class="bar ${r[k]===bestOf[k]?"best":""}" title="${esc(r.regija)}: ${fmt(r[k])} KM/t ${label[k]}"><div class="fill" style="width:${(r[k]/top*78).toFixed(1)}%;background:${color[k]}"></div><span class="v num">${fmt(r[k])} KM</span></div>`
-      ).join("")}</div></div>`).join("")
+      ).join("")}</div></div>${det}</div>`; }).join("")
       + `<div class="axis num"><div></div><div style="width:78%"><span>0</span><span>${fmt(top/2)}</span><span>${fmt(top)} KM/t</span></div></div>`;
   }
 
@@ -367,6 +394,10 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykktsbX6fl80XM5fEew
     renderTable();
   }));
   $("#filter").addEventListener("change", renderTable);
+  $("#chart").addEventListener("click", ev => {
+    const b = ev.target.closest("button.rname"); if (!b) return;
+    const k = b.dataset.reg; openReg.has(k) ? openReg.delete(k) : openReg.add(k); renderChart();
+  });
 
   /* ---------- slanje u Google obrazac ---------- */
   const pending = [];
