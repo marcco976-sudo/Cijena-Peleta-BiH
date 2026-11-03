@@ -418,4 +418,208 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxacr2ax6rbRvSDkMm2w
   function renderTable(){
     const tb = $("#rows"), f = $("#filter").value;
     const list = entries.filter(e => !f || e.regija.toLowerCase() === f).sort((a,b) => {
-      const x =
+      const x = a[sortKey], y = b[sortKey];
+      if (sortKey === "regija") return x.localeCompare(y,"hr") * sortDir;
+      if (x == null) return 1; if (y == null) return -1;
+      return (x - y) * sortDir;
+    });
+    document.querySelectorAll("th[data-sort]").forEach(th => {
+      th.textContent = th.textContent.replace(/ [↑↓]$/,"") + (th.dataset.sort === sortKey ? (sortDir>0?" ↑":" ↓") : "");
+    });
+    if (!list.length){ tb.innerHTML = `<tr><td colspan="5" class="empty">${loaded ? "Nema unosa za ovaj prikaz." : "Učitavanje…"}</td></tr>`; return; }
+    tb.innerHTML = list.map(e => `<tr>
+      <td>${esc(e.regija)}<span class="sub">${esc([e.prodavac,e.vrsta,e.napomena].filter(Boolean).join(" · "))}</span></td>
+      <td class="r num">${e.bez!=null ? fmt(e.bez)+" KM" : "–"}</td>
+      <td class="r num">${e.sa!=null ? fmt(e.sa)+" KM" : "–"}</td>
+      <td>${stars(e.ocjena)}</td>
+      <td class="num">${esc(e.datum || "upravo poslano")}</td>
+    </tr>`).join("");
+  }
+
+  function renderFilters(){
+    const regs = [...new Map(entries.map(e => [e.regija.toLowerCase(), e.regija])).entries()].sort((a,b)=>a[1].localeCompare(b[1],"hr"));
+    const sel = $("#filter"), cur = sel.value;
+    sel.innerHTML = `<option value="">Sve regije</option>` + regs.map(([k,v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join("");
+    sel.value = regs.some(([k]) => k===cur) ? cur : "";
+    $("#regije").innerHTML = regs.map(([,v]) => `<option value="${esc(v)}"></option>`).join("");
+  }
+
+  function renderPie(){
+    const el = $("#pie");
+    const key = view === "sa" ? "sa" : "bez";
+    const lab = key === "sa" ? "s dovozom" : "bez dovoza";
+    const withP = entries.filter(e => e[key] != null);
+    if (!withP.length){ el.innerHTML = `<div class="ptitle">Pregled po regijama</div><div class="empty">${loaded ? "Još nema cijena " + lab + "." : "Učitavanje…"}</div>`; return; }
+    const lo = withP.reduce((a,b) => b[key] < a[key] ? b : a), hi = withP.reduce((a,b) => b[key] > a[key] ? b : a);
+    const m = new Map();
+    for (const e of withP){ const k = e.regija.toLowerCase(); if (!m.has(k)) m.set(k, {regija:e.regija, n:0, min:Infinity}); const r = m.get(k); r.n++; if (e[key] < r.min) r.min = e[key]; }
+    let regs = [...m.values()].sort((a,b) => b.n - a.n || a.min - b.min);
+    if (regs.length > 7){ const rest = regs.slice(6); regs = regs.slice(0,6).concat([{regija:"Ostale regije (" + rest.length + ")", n: rest.reduce((s,r)=>s+r.n,0), min: Math.min(...rest.map(r=>r.min))}]); }
+    const total = regs.reduce((s,r) => s + r.n, 0);
+    const R = 80, C = 2*Math.PI*R;
+    let off = 0;
+    const segs = regs.map((r,i) => { const len = r.n/total*C; const seg = `<circle r="${R}" cx="110" cy="110" fill="none" stroke="var(--c${i+1})" stroke-width="34" stroke-dasharray="${regs.length===1 ? C : Math.max(len-2,0.5)} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90 110 110)"><title>${esc(r.regija)}: ${r.n} ${r.n===1?"unos":"unosa"}</title></circle>`; off += len; return seg; }).join("");
+    el.innerHTML = `<div class="ptitle">Pregled po regijama · ${lab}</div>
+      <svg viewBox="0 0 220 220" role="img" aria-label="Udio unosa po regijama">${segs}
+        <text x="110" y="100" text-anchor="middle" font-size="12" fill="var(--muted)">raspon cijena</text>
+        <text x="110" y="122" text-anchor="middle" font-size="19" font-weight="700" fill="var(--fg)">${fmt(lo[key])}–${fmt(hi[key])}</text>
+        <text x="110" y="140" text-anchor="middle" font-size="12" fill="var(--muted)">KM/t</text></svg>
+      <div class="pmm">
+        <div class="lo">Najjeftinije<b class="num">${fmt(lo[key])} KM</b>${esc(lo.regija)}${lo.prodavac ? " · " + esc(lo.prodavac) : ""}</div>
+        <div class="hi">Najskuplje<b class="num">${fmt(hi[key])} KM</b>${esc(hi.regija)}${hi.prodavac ? " · " + esc(hi.prodavac) : ""}</div>
+      </div>
+      <div class="pleg">${regs.map((r,i) => `<div><i style="background:var(--c${i+1})"></i><span>${esc(r.regija)}</span><em class="num">${r.n} · od ${fmt(r.min)} KM</em></div>`).join("")}</div>
+      <div class="note">Krug pokazuje udio unosa po regijama.</div>`;
+  }
+
+  function renderAll(){ renderBest(); renderChart(); renderPie(); renderRank(); renderFilters(); renderTable(); }
+
+  [["#v-both","both"],["#v-bez","bez"],["#v-sa","sa"]].forEach(([s,v]) => $(s).addEventListener("click", () => {
+    view = v; document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(b === $(s)))); renderChart(); renderPie();
+  }));
+  document.querySelectorAll("th[data-sort]").forEach(th => th.addEventListener("click", () => {
+    if (sortKey === th.dataset.sort) sortDir *= -1; else { sortKey = th.dataset.sort; sortDir = (sortKey === "red" || sortKey === "ocjena") ? -1 : 1; }
+    renderTable();
+  }));
+  $("#filter").addEventListener("change", renderTable);
+  $("#chart").addEventListener("click", ev => {
+    const m = ev.target.closest("button.more");
+    if (m){ const k = m.dataset.more; allReg.has(k) ? allReg.delete(k) : allReg.add(k); renderChart(); return; }
+    const b = ev.target.closest("button.rname"); if (!b) return;
+    const k = b.dataset.reg; openReg.has(k) ? openReg.delete(k) : openReg.add(k); renderChart();
+  });
+
+  /* ---------- slanje u Google obrazac ---------- */
+  const pending = [];
+  const msg = (t, cls) => { const m = $("#f-msg"); m.textContent = t; m.className = "msg" + (cls ? " " + cls : ""); };
+  const radio = n => { const r = document.querySelector(`input[name="${n}"]:checked`); return r ? r.value : ""; };
+
+  $("#f").addEventListener("submit", async ev => {
+    ev.preventDefault();
+    const regija = normReg($("#f-regija").value);
+    const d = { regija, prodavac: $("#f-prodavac").value.trim(), bez: $("#f-bez").value.trim(), sa: $("#f-sa").value.trim(),
+      kvaliteta: radio("kvaliteta"), usluga: radio("usluga"), vrsta: $("#f-vrsta").value, komentar: $("#f-napomena").value.trim() };
+    if (!regija) return msg("Upišite regiju ili mjesto.", "err");
+    if (!num(d.bez) && !num(d.sa) && !d.kvaliteta && !d.usluga) return msg("Upišite barem jednu cijenu ili dajte ocjenu.", "err");
+    if ((d.bez && !num(d.bez)) || (d.sa && !num(d.sa))) return msg("Cijena treba biti broj, u KM po toni.", "err");
+    if (!SCRIPT_URL){ return msg("Slanje još nije uključeno: stranica nije povezana s Google tablicom.", "err"); }
+    const body = new URLSearchParams();
+    for (const k in d) if (d[k]) body.append(k, d[k]);
+    const btn = $("#f-btn"); btn.disabled = true; msg("Šaljem…");
+    try {
+      await fetch(SCRIPT_URL, {method:"POST", mode:"no-cors", body});
+      const e = mk(d, 1e9 + pending.length); e.datum = ""; pending.push(e); entries.push(e); renderAll();
+      $("#f").reset();
+      msg("Hvala! Poslano i odmah vidljivo svima.", "ok"); setTimeout(load, 2500);
+    } catch(err){ msg("Slanje nije uspjelo. Provjerite internet vezu i pokušajte ponovno.", "err"); }
+    finally { btn.disabled = false; }
+  });
+
+
+  /* ---------- službene cijene FMT ---------- */
+  const KANTONI = {USK:"Unsko-sanski kanton", PK:"Posavski kanton", TK:"Tuzlanski kanton", ZDK:"Zeničko-dobojski kanton", BPK:"Bosansko-podrinjski kanton", SBK:"Srednjobosanski kanton", HNK:"Hercegovačko-neretvanski kanton", ZHK:"Zapadnohercegovački kanton", KS:"Kanton Sarajevo", K10:"Kanton 10"};
+  const KLASE = {k1:"ENplus A1", k2:"ENplus A2", k3:"Necertificirani"};
+  const FMT_LINK = "https://www.fmt.gov.ba/pregled-cijena-peleta.html";
+  let fmtData = null, fmtKlasa = null;
+  const fmtOpen = new Set(), fmtAll = new Set();
+
+  async function loadFMT(){
+    if (!SCRIPT_URL){ fmtData = DEMO_FMT; renderFMT(); return; }
+    try {
+      const r = await fetch(SCRIPT_URL + "?izvor=fmt&t=" + Date.now(), {cache:"no-store"});
+      const j = await r.json();
+      if (!j || !Array.isArray(j.redovi)) throw new Error("format");
+      fmtData = j;
+    } catch(e){ if (!fmtData) fmtData = {greska:true, redovi:[]}; }
+    renderFMT();
+  }
+
+  function renderFMT(){
+    const body = $("#fmt-body"), meta = $("#fmt-meta"), seg = $("#fmt-seg");
+    if (!fmtData) return;
+    const src = `Izvor: <a href="${FMT_LINK}" target="_blank" rel="noopener">Federalno ministarstvo trgovine</a>`;
+    if (fmtData.greska || !fmtData.redovi.length){
+      meta.innerHTML = src + ". Brčko distrikt nije obuhvaćen tim popisom.";
+      seg.innerHTML = "";
+      body.innerHTML = `<div class="chart"><div class="empty">Službene cijene trenutno nisu dostupne. Pogledajte ih izravno na <a href="${FMT_LINK}" target="_blank" rel="noopener">stranici ministarstva</a>.</div></div>`;
+      return;
+    }
+    const all = fmtData.redovi.map(r => ({...r, k1:num(r.k1), k2:num(r.k2), k3:num(r.k3), kanton:String(r.kanton||"").toUpperCase()}));
+    const cnt = k => all.filter(r => r[k] != null).length;
+    if (!fmtKlasa || !cnt(fmtKlasa)) fmtKlasa = ["k1","k2","k3"].sort((a,b) => cnt(b) - cnt(a))[0];
+    meta.innerHTML = `${src} · stanje na dan ${esc(fmtData.naDan || "–")} · ${all.length} prodajnih mjesta · cijene bez dovoza${fmtData.osvjezeno ? " · provjereno " + esc(fmtData.osvjezeno) : ""}. Brčko distrikt nije obuhvaćen tim popisom.`;
+    seg.innerHTML = ["k1","k2","k3"].map(k => `<button type="button" data-klasa="${k}" aria-pressed="${k===fmtKlasa}"${cnt(k) ? "" : " disabled"}>${KLASE[k]} <span class="num">(${cnt(k)})</span></button>`).join("");
+
+    const k = fmtKlasa;
+    const rows = all.filter(r => r[k] != null).sort((a,b) => a[k] - b[k]);
+    const nm = r => r.mjesto && r.mjesto.toLowerCase() !== String(r.naziv).toLowerCase() ? `${esc(r.naziv)} · ${esc(r.mjesto)}` : esc(r.naziv || r.mjesto);
+    const typ = r => r.vrsta ? `<span class="typ">${r.vrsta === "Proizvođač" ? "proizvođač" : "trgovac"}</span>` : "";
+
+    // po kantonima
+    const m = new Map();
+    for (const r of rows){ if (!m.has(r.kanton)) m.set(r.kanton, []); m.get(r.kanton).push(r); }
+    const kant = [...m.entries()].map(([kod, list]) => ({kod, list, min:list[0][k]})).sort((a,b) => a.min - b.min);
+    const top = Math.ceil(Math.max(...rows.map(r => r[k])) / 100) * 100;
+    const bestMin = kant[0].min;
+    const LIMIT = 5;
+    const chart = kant.map(c => {
+      const open = fmtOpen.has(c.kod), showAll = fmtAll.has(c.kod);
+      let det = "";
+      if (open){
+        const shown = showAll ? c.list : c.list.slice(0, LIMIT);
+        const vals = c.list.map(r => r[k]);
+        det = `<div class="detail"><div class="dsum num">${c.list.length} ${c.list.length===1?"prodajno mjesto":"prodajnih mjesta"}${vals.length > 1 ? ` · od ${fmt(Math.min(...vals))} do ${fmt(Math.max(...vals))} KM/t · prosjek ${fmt(avg(vals))}` : ""}</div>
+          ${shown.map((r,i) => `<div class="ditem"><div class="dwho"><span class="drank num">${i+1}.</span> ${nm(r)}${typ(r)}${i===0 && c.list.length>1 ? ` <em class="tag">najjeftiniji</em>` : ""}<span>${esc([r.adresa, r.datum ? "prijavljeno " + r.datum : ""].filter(Boolean).join(" · "))}</span></div>
+          <div class="dpr num"><span>${fmt(r[k])} KM/t</span></div></div>`).join("")}
+          ${c.list.length > LIMIT ? `<button type="button" class="more" data-fmore="${esc(c.kod)}">${showAll ? "Prikaži samo 5 najjeftinijih" : `Prikaži još ${c.list.length - LIMIT}`}</button>` : ""}</div>`;
+      }
+      return `<div class="creg${open ? " open" : ""}"><div class="crow">
+        <button type="button" class="rname" data-kanton="${esc(c.kod)}" aria-expanded="${open}">${esc(KANTONI[c.kod] || c.kod)}<span>${c.list.length} ${c.list.length===1?"mjesto":"mjesta"} · ${open ? "sakrij" : "prikaži sve"}</span></button>
+        <div class="bars"><div class="bar ${c.min===bestMin?"best":""}"><div class="fill" style="width:${(c.min/top*78).toFixed(1)}%;background:var(--c3)"></div><span class="v num">od ${fmt(c.min)} KM</span></div></div>
+      </div>${det}</div>`;
+    }).join("") + `<div class="axis num"><div></div><div style="width:78%"><span>0</span><span>${fmt(top/2)}</span><span>${fmt(top)} KM/t</span></div></div>`;
+
+    const lo = rows.slice(0, 5), hi = rows.slice(-3).reverse();
+    const item = (r, i, cls) => `<div class="sitem ${cls}"><span class="pos num">${i+1}.</span><span class="nm">${nm(r)}<span>${esc(KANTONI[r.kanton] || r.kanton)}${r.datum ? " · " + esc(r.datum) : ""}</span></span><b class="num">${fmt(r[k])} KM</b></div>`;
+    body.innerHTML = `<div class="cgrid">
+      <div class="chart">${chart}</div>
+      <aside class="side" aria-label="Najjeftinije i najskuplje">
+        <div class="ptitle">Najjeftinije · ${KLASE[k]}</div>
+        <div class="slist">${lo.map((r,i) => item(r,i,"lo")).join("")}</div>
+        ${rows.length > 5 ? `<div class="ptitle">Najskuplje</div><div class="slist">${hi.map((r,i) => item(r,i,"hi")).join("")}</div>` : ""}
+      </aside></div>`;
+  }
+
+  $("#fmt-seg").addEventListener("click", ev => { const b = ev.target.closest("button[data-klasa]"); if (!b) return; fmtKlasa = b.dataset.klasa; renderFMT(); });
+  $("#fmt-body").addEventListener("click", ev => {
+    const m = ev.target.closest("button[data-fmore]");
+    if (m){ const k = m.dataset.fmore; fmtAll.has(k) ? fmtAll.delete(k) : fmtAll.add(k); renderFMT(); return; }
+    const b = ev.target.closest("button[data-kanton]"); if (!b) return;
+    const k = b.dataset.kanton; fmtOpen.has(k) ? fmtOpen.delete(k) : fmtOpen.add(k); renderFMT();
+  });
+
+  const DEMO_FMT = {naDan:"22.10.2026", osvjezeno:"", redovi:[
+    {vrsta:"Proizvođač", naziv:"Primjer d.o.o.", mjesto:"Glamoč", kanton:"K10", datum:"15.10.2026.", k3:645},
+    {vrsta:"Proizvođač", naziv:"Primjer Drvo d.o.o.", mjesto:"Drvar", kanton:"K10", datum:"09.10.2026.", k1:750, k2:730},
+    {vrsta:"Trgovac", naziv:"Primjer Trade", mjesto:"Zavidovići", kanton:"ZDK", datum:"22.10.2026.", k2:793.3},
+    {vrsta:"Proizvođač", naziv:"Primjer Pelet", mjesto:"Travnik", kanton:"SBK", datum:"28.09.2026.", k3:600},
+    {vrsta:"Trgovac", naziv:"Primjer Market", mjesto:"Tuzla", kanton:"TK", datum:"19.10.2026.", k3:826.7},
+    {vrsta:"Trgovac", naziv:"Primjer BC", mjesto:"Sarajevo", kanton:"KS", datum:"20.10.2026.", k3:810}
+  ]};
+
+  /* ---------- primjer podataka (samo dok SCRIPT_URL nije postavljen) ---------- */
+  const DEMO = [
+    {regija:"Brčko centar", prodavac:"Primjer d.o.o.", bez:"420", sa:"450", kvaliteta:"4", usluga:"5", vrsta:"Bukva", datum:"28.10.2026."},
+    {regija:"Brka", prodavac:"Pilana Primjer", bez:"395", sa:"", kvaliteta:"5", usluga:"4", vrsta:"Miješano", datum:"30.10.2026."},
+    {regija:"Gornji Rahić", prodavac:"Trgovina Primjer", bez:"410", sa:"440", kvaliteta:"3", usluga:"3", vrsta:"Jela", datum:"31.10.2026."},
+    {regija:"Brčko centar", prodavac:"Drvo Primjer", bez:"435", sa:"455", kvaliteta:"4", usluga:"4", vrsta:"Bukva", datum:"1.11.2026."}
+  ];
+
+  renderAll();
+  load();
+  loadFMT();
+  setInterval(() => { if (!document.hidden && SCRIPT_URL){ load(); } }, 120000);
+})();
+</script>
+</body>
+</html>
