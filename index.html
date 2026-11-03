@@ -14,19 +14,20 @@
   --bg:#eef0e9; --surface:#f9faf6; --line:#d5d9cc; --fg:#1d2a1f; --muted:#5b6a5c;
   --accent:#2f6b3e; --accent-fg:#ffffff; --amber:#c7811f; --bar-a:#2f6b3e; --bar-b:#c7811f;
   --good:#2f6b3e; --danger:#a63b2b;
+  --c1:#2f6b3e; --c2:#c7811f; --c3:#3d6f9e; --c4:#9a4f7a; --c5:#6b8f2a; --c6:#b5523a; --c7:#8a8f86;
   --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
   --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#141a15; --surface:#1c241d; --line:#2f3a30; --fg:#e6ebe2; --muted:#9aa89a;
   --accent:#6fbf83; --accent-fg:#0d1a10; --amber:#e3a34a; --bar-a:#6fbf83; --bar-b:#e3a34a;
-  --good:#6fbf83; --danger:#e07a68; color-scheme:dark}}
+  --good:#6fbf83; --danger:#e07a68; --c1:#6fbf83; --c2:#e3a34a; --c3:#7fb0e0; --c4:#d38bb6; --c5:#b0cf6a; --c6:#e88a72; --c7:#8f998e; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#141a15; --surface:#1c241d; --line:#2f3a30; --fg:#e6ebe2; --muted:#9aa89a;
   --accent:#6fbf83; --accent-fg:#0d1a10; --amber:#e3a34a; --bar-a:#6fbf83; --bar-b:#e3a34a;
-  --good:#6fbf83; --danger:#e07a68; color-scheme:dark}
+  --good:#6fbf83; --danger:#e07a68; --c1:#6fbf83; --c2:#e3a34a; --c3:#7fb0e0; --c4:#d38bb6; --c5:#b0cf6a; --c6:#e88a72; --c7:#8f998e; color-scheme:dark}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5}
-.wrap{max-width:860px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:28px}
+.wrap{max-width:1040px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:28px}
 h1,h2{font-family:var(--f-display);font-stretch:80%;margin:0;text-wrap:balance;letter-spacing:-.01em}
 h1{font-size:clamp(30px,6vw,46px);font-weight:800;line-height:1}
 h2{font-size:22px;font-weight:700}
@@ -44,6 +45,7 @@ section{display:grid;gap:14px}
 .head-row{display:flex;flex-wrap:wrap;gap:10px;align-items:end;justify-content:space-between}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
 .seg button{border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;font-weight:600;padding:7px 12px;cursor:pointer}
+.seg button:disabled{opacity:.4;cursor:not-allowed}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
 .legend{display:flex;gap:16px;font-size:13px;color:var(--muted)}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
@@ -64,12 +66,43 @@ button.rname:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .dwho span{display:block;font-weight:400;font-size:12px;color:var(--muted)}
 .dpr{display:flex;gap:12px;align-items:center;white-space:nowrap}
 .dpr small{color:var(--muted);font-size:11px}
+.dwho .drank{display:inline;color:var(--muted);font-size:14px;font-weight:600}
+.tag{font-style:normal;font-size:11px;text-transform:uppercase;letter-spacing:.06em;background:var(--accent);color:var(--accent-fg);padding:1px 6px;border-radius:99px;vertical-align:1px}
+.more{font:inherit;font-size:13px;font-weight:600;color:var(--accent);background:none;border:0;padding:10px 12px;text-align:left;cursor:pointer}
+.more:hover{text-decoration:underline}
 .bars{display:grid;gap:4px;min-width:0}
 .bar{display:flex;align-items:center;gap:8px;min-width:0}
 .bar .fill{height:16px;border-radius:0 4px 4px 0;min-width:3px;transition:width .4s ease}
 .bar .v{font-size:13px;white-space:nowrap}
 .bar.best .v{font-weight:700}
 .bar.best .v::after{content:"najpovoljnije";margin-left:6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;background:var(--accent);color:var(--accent-fg);padding:1px 6px;border-radius:99px}
+.cgrid{display:grid;gap:14px;align-items:start}
+@media (min-width:820px){.cgrid{grid-template-columns:minmax(0,1fr) 280px}}
+.pie{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:14px;min-width:0}
+.pie svg{width:100%;max-width:220px;height:auto;margin:0 auto;display:block}
+.pie .ptitle{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.pmm{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pmm div{display:grid;gap:2px;font-size:12px;color:var(--muted)}
+.pmm b{font-family:var(--f-display);font-stretch:80%;font-size:22px;color:var(--fg);line-height:1.1}
+.pmm .lo b{color:var(--good)} .pmm .hi b{color:var(--danger)}
+.pleg{display:grid;gap:6px;font-size:13px}
+.pleg div{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:8px;align-items:center}
+.pleg i{width:10px;height:10px;border-radius:2px}
+.pleg span:nth-child(2){overflow-wrap:anywhere}
+.pleg em{font-style:normal;color:var(--muted);font-size:12px;white-space:nowrap}
+.side{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:10px;min-width:0}
+.side .ptitle{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.slist{display:grid}
+.sitem{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+.sitem:last-child{border-bottom:0}
+.sitem .pos{color:var(--muted);font-weight:600}
+.sitem .nm{font-weight:600;overflow-wrap:anywhere}
+.sitem .nm span{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.sitem b{white-space:nowrap}
+.sitem.hi b{color:var(--danger)} .sitem.lo b{color:var(--good)}
+.typ{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:0 5px;margin-left:4px;font-weight:600;white-space:nowrap}
+#fmt-meta a{color:var(--accent)}
+.dwho .typ{display:inline-block;font-size:10px;color:var(--muted);vertical-align:1px}
 .axis{display:grid;grid-template-columns:minmax(90px,150px) 1fr;gap:12px;font-size:11px;color:var(--muted)}
 .axis div:last-child{display:flex;justify-content:space-between}
 .empty{color:var(--muted);text-align:center;padding:24px 8px}
@@ -149,7 +182,21 @@ td .sub{display:block;font-size:12px;color:var(--muted);white-space:normal;max-w
       </div>
     </div>
     <div class="legend"><span><i style="background:var(--bar-a)"></i>Bez dovoza</span><span><i style="background:var(--bar-b)"></i>S dovozom</span></div>
-    <div class="chart" id="chart"><div class="empty">Učitavanje…</div></div>
+    <div class="cgrid">
+      <div class="chart" id="chart"><div class="empty">Učitavanje…</div></div>
+      <aside class="pie" id="pie" aria-label="Pregled po regijama"><div class="empty">Učitavanje…</div></aside>
+    </div>
+  </section>
+
+  <section aria-labelledby="fmt-h" id="sluzbene">
+    <div class="head-row">
+      <div>
+        <h2 id="fmt-h">Službene cijene u Federaciji BiH</h2>
+        <div class="note" id="fmt-meta">Učitavanje službenog popisa…</div>
+      </div>
+      <div class="seg" role="group" aria-label="Klasa peleta" id="fmt-seg"></div>
+    </div>
+    <div id="fmt-body"><div class="chart"><div class="empty">Učitavanje…</div></div></div>
   </section>
 
   <section aria-labelledby="rank-h">
@@ -238,7 +285,7 @@ td .sub{display:block;font-size:12px;color:var(--muted);white-space:normal;max-w
 /* ================== POSTAVKE ==================
    SCRIPT_URL: link web aplikacije iz Google Apps Scripta (završava na /exec).
    Dok je prazan, stranica prikazuje primjer podataka. */
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykktsbX6fl80XM5fEewOdpVGnBCMnorhoWtjc98CAOc0m2m5oAv1FM94ud_PMJznqn7A/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxacr2ax6rbRvSDkMm2wGDxm7WVBw5V_gYxV9H5lvRTqaOmpWaQEKhYH0PnsP02l1Ek/exec";
 /* ============================================== */
 
 (function(){
@@ -251,7 +298,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykktsbX6fl80XM5fEew
   const avg = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : null;
   const VRSTE = ["Bukva","Jela","Miješano","Ne znam"];
 
-  const openReg = new Set();
+  const openReg = new Set(), allReg = new Set();
   let entries = [], view = "both", sortKey = "bez", sortDir = 1, loaded = false;
 
   function mk(o, red){
@@ -312,13 +359,26 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykktsbX6fl80XM5fEew
     el.innerHTML = stats.map(r => { const k = r.regija.toLowerCase(), open = openReg.has(k);
       let det = "";
       if (open){
-        const list = byReg(k);
-        const vals = list.map(e => e[sortBy] ?? e.sa).filter(v => v != null);
-        const sum = vals.length > 1 ? `<div class="dsum num">Najniža ${fmt(Math.min(...vals))} · prosjek ${fmt(avg(vals))} · najviša ${fmt(Math.max(...vals))} KM/t</div>` : "";
-        det = `<div class="detail">${sum}${list.map(e => `<div class="ditem">
-          <div class="dwho">${esc(e.prodavac || "Nepoznat prodavač")}<span>${esc([e.vrsta, e.datum, e.napomena].filter(Boolean).join(" · "))}</span></div>
-          <div class="dpr num"><span><small>bez</small> ${e.bez!=null ? fmt(e.bez)+" KM" : "–"}</span><span><small>s dov.</small> ${e.sa!=null ? fmt(e.sa)+" KM" : "–"}</span>${e.ocjena!=null ? stars(e.ocjena) : ""}</div>
-        </div>`).join("")}</div>`;
+        // po prodavaču: jedan red po prodavaču, s njegovom najnižom cijenom
+        const g = new Map();
+        for (const e of byReg(k)){
+          const pk = (e.prodavac || "Nepoznat prodavač").toLowerCase();
+          if (!g.has(pk)) g.set(pk, {prodavac: e.prodavac || "Nepoznat prodavač", bez:null, sa:null, oc:[], n:0, datum:"", vrste:new Set(), kom:""});
+          const p = g.get(pk); p.n++;
+          if (e.bez != null && (p.bez == null || e.bez < p.bez)) p.bez = e.bez;
+          if (e.sa != null && (p.sa == null || e.sa < p.sa)) p.sa = e.sa;
+          if (e.ocjena != null) p.oc.push(e.ocjena);
+          if (e.vrsta && e.vrsta !== "Ne znam") p.vrste.add(e.vrsta);
+          if (e.red >= (p.red ?? -1)){ p.red = e.red; p.datum = e.datum; if (e.napomena) p.kom = e.napomena; }
+        }
+        const sellers = [...g.values()].sort((a,b) => (a[sortBy] ?? a.sa ?? a.bez ?? 1e9) - (b[sortBy] ?? b.sa ?? b.bez ?? 1e9));
+        const vals = sellers.map(p => p[sortBy] ?? p.sa ?? p.bez).filter(v => v != null);
+        const sum = `<div class="dsum num">${sellers.length} ${sellers.length===1?"prodavač":"prodavača"} · ${r.n} ${r.n===1?"unos":"unosa"}${vals.length>1 ? ` · od ${fmt(Math.min(...vals))} do ${fmt(Math.max(...vals))} KM/t` : ""}</div>`;
+        const LIMIT = 5, showAll = allReg.has(k), shown = showAll ? sellers : sellers.slice(0, LIMIT);
+        det = `<div class="detail">${sum}${shown.map((p,i) => `<div class="ditem">
+          <div class="dwho"><span class="drank num">${i+1}.</span> ${esc(p.prodavac)}${i===0 && sellers.length>1 ? ` <em class="tag">najjeftiniji</em>` : ""}<span>${esc([[...p.vrste].join(", "), p.n>1 ? p.n+" unosa" : "", p.datum ? "zadnje "+p.datum : "", p.kom].filter(Boolean).join(" · "))}</span></div>
+          <div class="dpr num"><span><small>bez</small> ${p.bez!=null ? fmt(p.bez)+" KM" : "–"}</span><span><small>s dov.</small> ${p.sa!=null ? fmt(p.sa)+" KM" : "–"}</span>${p.oc.length ? stars(avg(p.oc)) : ""}</div>
+        </div>`).join("")}${sellers.length > LIMIT ? `<button type="button" class="more" data-more="${esc(k)}">${showAll ? "Prikaži samo 5 najjeftinijih" : `Prikaži još ${sellers.length - LIMIT}`}</button>` : ""}</div>`;
       }
       return `<div class="creg${open ? " open" : ""}"><div class="crow">
       <button type="button" class="rname" data-reg="${esc(k)}" aria-expanded="${open}">${esc(r.regija)}<span>${r.n} ${r.n===1?"unos":"unosa"} · ${open ? "sakrij" : "prikaži sve"}</span></button>
@@ -358,85 +418,4 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykktsbX6fl80XM5fEew
   function renderTable(){
     const tb = $("#rows"), f = $("#filter").value;
     const list = entries.filter(e => !f || e.regija.toLowerCase() === f).sort((a,b) => {
-      const x = a[sortKey], y = b[sortKey];
-      if (sortKey === "regija") return x.localeCompare(y,"hr") * sortDir;
-      if (x == null) return 1; if (y == null) return -1;
-      return (x - y) * sortDir;
-    });
-    document.querySelectorAll("th[data-sort]").forEach(th => {
-      th.textContent = th.textContent.replace(/ [↑↓]$/,"") + (th.dataset.sort === sortKey ? (sortDir>0?" ↑":" ↓") : "");
-    });
-    if (!list.length){ tb.innerHTML = `<tr><td colspan="5" class="empty">${loaded ? "Nema unosa za ovaj prikaz." : "Učitavanje…"}</td></tr>`; return; }
-    tb.innerHTML = list.map(e => `<tr>
-      <td>${esc(e.regija)}<span class="sub">${esc([e.prodavac,e.vrsta,e.napomena].filter(Boolean).join(" · "))}</span></td>
-      <td class="r num">${e.bez!=null ? fmt(e.bez)+" KM" : "–"}</td>
-      <td class="r num">${e.sa!=null ? fmt(e.sa)+" KM" : "–"}</td>
-      <td>${stars(e.ocjena)}</td>
-      <td class="num">${esc(e.datum || "upravo poslano")}</td>
-    </tr>`).join("");
-  }
-
-  function renderFilters(){
-    const regs = [...new Map(entries.map(e => [e.regija.toLowerCase(), e.regija])).entries()].sort((a,b)=>a[1].localeCompare(b[1],"hr"));
-    const sel = $("#filter"), cur = sel.value;
-    sel.innerHTML = `<option value="">Sve regije</option>` + regs.map(([k,v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join("");
-    sel.value = regs.some(([k]) => k===cur) ? cur : "";
-    $("#regije").innerHTML = regs.map(([,v]) => `<option value="${esc(v)}"></option>`).join("");
-  }
-
-  function renderAll(){ renderBest(); renderChart(); renderRank(); renderFilters(); renderTable(); }
-
-  [["#v-both","both"],["#v-bez","bez"],["#v-sa","sa"]].forEach(([s,v]) => $(s).addEventListener("click", () => {
-    view = v; document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(b === $(s)))); renderChart();
-  }));
-  document.querySelectorAll("th[data-sort]").forEach(th => th.addEventListener("click", () => {
-    if (sortKey === th.dataset.sort) sortDir *= -1; else { sortKey = th.dataset.sort; sortDir = (sortKey === "red" || sortKey === "ocjena") ? -1 : 1; }
-    renderTable();
-  }));
-  $("#filter").addEventListener("change", renderTable);
-  $("#chart").addEventListener("click", ev => {
-    const b = ev.target.closest("button.rname"); if (!b) return;
-    const k = b.dataset.reg; openReg.has(k) ? openReg.delete(k) : openReg.add(k); renderChart();
-  });
-
-  /* ---------- slanje u Google obrazac ---------- */
-  const pending = [];
-  const msg = (t, cls) => { const m = $("#f-msg"); m.textContent = t; m.className = "msg" + (cls ? " " + cls : ""); };
-  const radio = n => { const r = document.querySelector(`input[name="${n}"]:checked`); return r ? r.value : ""; };
-
-  $("#f").addEventListener("submit", async ev => {
-    ev.preventDefault();
-    const regija = normReg($("#f-regija").value);
-    const d = { regija, prodavac: $("#f-prodavac").value.trim(), bez: $("#f-bez").value.trim(), sa: $("#f-sa").value.trim(),
-      kvaliteta: radio("kvaliteta"), usluga: radio("usluga"), vrsta: $("#f-vrsta").value, komentar: $("#f-napomena").value.trim() };
-    if (!regija) return msg("Upišite regiju ili mjesto.", "err");
-    if (!num(d.bez) && !num(d.sa) && !d.kvaliteta && !d.usluga) return msg("Upišite barem jednu cijenu ili dajte ocjenu.", "err");
-    if ((d.bez && !num(d.bez)) || (d.sa && !num(d.sa))) return msg("Cijena treba biti broj, u KM po toni.", "err");
-    if (!SCRIPT_URL){ return msg("Slanje još nije uključeno: stranica nije povezana s Google tablicom.", "err"); }
-    const body = new URLSearchParams();
-    for (const k in d) if (d[k]) body.append(k, d[k]);
-    const btn = $("#f-btn"); btn.disabled = true; msg("Šaljem…");
-    try {
-      await fetch(SCRIPT_URL, {method:"POST", mode:"no-cors", body});
-      const e = mk(d, 1e9 + pending.length); e.datum = ""; pending.push(e); entries.push(e); renderAll();
-      $("#f").reset();
-      msg("Hvala! Poslano i odmah vidljivo svima.", "ok"); setTimeout(load, 2500);
-    } catch(err){ msg("Slanje nije uspjelo. Provjerite internet vezu i pokušajte ponovno.", "err"); }
-    finally { btn.disabled = false; }
-  });
-
-  /* ---------- primjer podataka (samo dok SCRIPT_URL nije postavljen) ---------- */
-  const DEMO = [
-    {regija:"Brčko centar", prodavac:"Primjer d.o.o.", bez:"420", sa:"450", kvaliteta:"4", usluga:"5", vrsta:"Bukva", datum:"28.10.2026."},
-    {regija:"Brka", prodavac:"Pilana Primjer", bez:"395", sa:"", kvaliteta:"5", usluga:"4", vrsta:"Miješano", datum:"30.10.2026."},
-    {regija:"Gornji Rahić", prodavac:"Trgovina Primjer", bez:"410", sa:"440", kvaliteta:"3", usluga:"3", vrsta:"Jela", datum:"31.10.2026."},
-    {regija:"Brčko centar", prodavac:"Drvo Primjer", bez:"435", sa:"455", kvaliteta:"4", usluga:"4", vrsta:"Bukva", datum:"1.11.2026."}
-  ];
-
-  renderAll();
-  load();
-  setInterval(() => { if (!document.hidden && SCRIPT_URL) load(); }, 120000);
-})();
-</script>
-</body>
-</html>
+      const x =
