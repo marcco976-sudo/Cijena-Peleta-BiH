@@ -579,14 +579,30 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxacr2ax6rbRvSDkMm2w
       </div>${det}</div>`;
     }).join("") + `<div class="axis num"><div></div><div style="width:78%"><span>0</span><span>${fmt(top/2)}</span><span>${fmt(top)} KM/t</span></div></div>`;
 
-    const lo = rows.slice(0, 5), hi = rows.slice(-3).reverse();
-    const item = (r, i, cls) => `<div class="sitem ${cls}"><span class="pos num">${i+1}.</span><span class="nm">${nm(r)}<span>${esc(KANTONI[r.kanton] || r.kanton)}${r.datum ? " · " + esc(r.datum) : ""}</span></span><b class="num">${fmt(r[k])} KM</b></div>`;
+    // kružni dijagram: udio prodajnih mjesta po kantonima (isti izgled kao gore)
+    let pk = kant.map(c => ({naziv: KANTONI[c.kod] || c.kod, n: c.list.length, min: c.min})).sort((a,b) => b.n - a.n || a.min - b.min);
+    if (pk.length > 7){ const rest = pk.slice(6); pk = pk.slice(0,6).concat([{naziv:"Ostali kantoni (" + rest.length + ")", n: rest.reduce((t,r)=>t+r.n,0), min: Math.min(...rest.map(r=>r.min))}]); }
+    const total = pk.reduce((t,r) => t + r.n, 0), R = 80, C = 2*Math.PI*R;
+    let off = 0;
+    const segs = pk.map((r,i) => { const len = r.n/total*C; const sg = `<circle r="${R}" cx="110" cy="110" fill="none" stroke="var(--c${i+1})" stroke-width="34" stroke-dasharray="${pk.length===1 ? C : Math.max(len-2,0.5)} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90 110 110)"><title>${esc(r.naziv)}: ${r.n} mjesta</title></circle>`; off += len; return sg; }).join("");
+    const loR = rows[0], hiR = rows[rows.length-1];
+    const kn = r => esc(KANTONI[r.kanton] || r.kanton);
+    const item = (r, i) => `<div class="sitem lo"><span class="pos num">${i+1}.</span><span class="nm">${nm(r)}<span>${kn(r)}${r.datum ? " · " + esc(r.datum) : ""}</span></span><b class="num">${fmt(r[k])} KM</b></div>`;
     body.innerHTML = `<div class="cgrid">
       <div class="chart">${chart}</div>
-      <aside class="side" aria-label="Najjeftinije i najskuplje">
-        <div class="ptitle">Najjeftinije · ${KLASE[k]}</div>
-        <div class="slist">${lo.map((r,i) => item(r,i,"lo")).join("")}</div>
-        ${rows.length > 5 ? `<div class="ptitle">Najskuplje</div><div class="slist">${hi.map((r,i) => item(r,i,"hi")).join("")}</div>` : ""}
+      <aside class="pie" aria-label="Pregled po kantonima">
+        <div class="ptitle">Pregled po kantonima · ${KLASE[k]}</div>
+        <svg viewBox="0 0 220 220" role="img" aria-label="Udio prodajnih mjesta po kantonima">${segs}
+          <text x="110" y="100" text-anchor="middle" font-size="12" fill="var(--muted)">raspon cijena</text>
+          <text x="110" y="122" text-anchor="middle" font-size="19" font-weight="700" fill="var(--fg)">${fmt(loR[k])}–${fmt(hiR[k])}</text>
+          <text x="110" y="140" text-anchor="middle" font-size="12" fill="var(--muted)">KM/t</text></svg>
+        <div class="pmm">
+          <div class="lo">Najjeftinije<b class="num">${fmt(loR[k])} KM</b>${nm(loR)}<br>${kn(loR)}</div>
+          <div class="hi">Najskuplje<b class="num">${fmt(hiR[k])} KM</b>${nm(hiR)}<br>${kn(hiR)}</div>
+        </div>
+        <div class="pleg">${pk.map((r,i) => `<div><i style="background:var(--c${i+1})"></i><span>${esc(r.naziv)}</span><em class="num">${r.n} · od ${fmt(r.min)} KM</em></div>`).join("")}</div>
+        <div class="note">Krug pokazuje udio prodajnih mjesta po kantonima.</div>
+        ${rows.length > 1 ? `<div class="ptitle">5 najjeftinijih</div><div class="slist">${rows.slice(0,5).map(item).join("")}</div>` : ""}
       </aside></div>`;
   }
 
